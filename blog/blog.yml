@@ -1,0 +1,52 @@
+---
+- name: Bring up Ghost Blogging platform
+  hosts: webservers
+  sudo: true
+  vars:
+    nginx_proxy_destination: 20080
+    nginx_server_name: blog.rickyk.me
+    nginx_config_location: /etc/nginx/sites-available/blog.rickyk.me
+
+  tasks:
+    - name: Create docker volume blog-vol
+      docker_volume:
+        name: blog-vol
+        state: present
+
+    - name: Create docker network ricky-net
+      docker_network:
+        name: ricky-net
+        state: present
+        appends: yes
+
+    - name: Run Ghost Image
+      docker_container:
+        name: ghost
+        image: ghost:1-alpine
+        ports:
+          - "20080:2368"
+        volumes:
+          - "blog-vol:/var/lib/ghost/content"
+        env:
+          NODE_ENV: production
+          url: http://{{ nginx_server_name }}
+
+    - name: Append ghost to ricky-net
+      docker_network:
+        name: ricky-net
+        connected:
+          - ghost
+        appends: yes
+
+    - name: Copy nginx-blog config to sites-enabled
+      template: src=templates/nginx-blog.conf.j2 dest={{ nginx_config_location }}
+      notify: restart nginx
+
+    - name: Enable blog by linking config to sites-enabled
+      file: dest=/etc/nginx/sites-enabled/{{ nginx_server_name }} src={{ nginx_config_location }} state=link
+      notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+...
