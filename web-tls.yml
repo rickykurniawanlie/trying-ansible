@@ -5,7 +5,8 @@
     key_file: /etc/nginx/ssl/nginx.key
     cert_file: /etc/nginx/ssl/nginx.crt
     conf_file: /etc/nginx/sites-available/default
-    server_name: rickyk.me
+    server_name_no_www: rickyk.me
+    server_name_www: www.rickyk.me
   tasks:
     - name: Install NGINX
       apt: name=nginx update_cache=yes cache_valid_time=3600
